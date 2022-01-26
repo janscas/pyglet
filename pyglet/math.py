@@ -67,7 +67,7 @@ class Vec2(tuple):
 
     def __new__(cls, *args):
         assert len(args) in (0, 2), "0 or 2 values are required for Vec2 types."
-        return super().__new__(Vec2, args or (0, 0))
+        return super().__new__(cls, args or (0, 0))
 
     @staticmethod
     def from_polar(mag, angle):
@@ -82,7 +82,7 @@ class Vec2(tuple):
         :returns: A new vector with the given angle and magnitude.
         :rtype: Vec2
         """
-        return Vec2(mag * _math.cos(angle), mag * _math.sin(angle))
+        return self.__class__(mag * _math.cos(angle), mag * _math.sin(angle))
 
     @property
     def x(self):
@@ -119,25 +119,43 @@ class Vec2(tuple):
         return self.__abs__()
 
     def __add__(self, other):
-        return Vec2(self[0] + other[0], self[1] + other[1])
+        if isinstance(other, tuple):
+            return self.__class__(self[0] + other[0], self[1] + other[1])
+        else:
+            return self.__class__(self[0] + other, self[1] + other)
 
     def __sub__(self, other):
-        return Vec2(self[0] - other[0], self[1] - other[1])
+        if isinstance(other, tuple):
+            return self.__class__(self[0] - other[0], self[1] - other[1])
+        else:
+            return self.__class__(self[0] - other, self[1] - other)
 
     def __mul__(self, other):
-        return Vec2(self[0] * other[0], self[1] * other[1])
+        if isinstance(other, tuple):
+            return self.__class__(self[0] * other[0], self[1] * other[1])
+        else:
+            return self.__class__(self[0] * other, self[1] * other)
 
     def __truediv__(self, other):
-        return Vec2(self[0] / other[0], self[1] / other[1])
+        if isinstance(other, tuple):
+            return self.__class__(self[0] / other[0], self[1] / other[1])
+        else:
+            return self.__class__(self[0] / other, self[1] / other)
+
+    def __floordiv__(self, other):
+        if isinstance(other, tuple):
+            return self.__class__(self[0] // other[0], self[1] // other[1])
+        else:
+            return self.__class__(self[0] // other, self[1] // other)
 
     def __abs__(self):
         return _math.sqrt(self[0] ** 2 + self[1] ** 2)
 
     def __neg__(self):
-        return Vec2(-self[0], -self[1])
+        return self.__class__(-self[0], -self[1])
 
     def __round__(self, ndigits=None):
-        return Vec2(*(round(v, ndigits) for v in self))
+        return self.__class__(*(round(v, ndigits) for v in self))
 
     def __radd__(self, other):
         """Reverse add. Required for functionality with sum()
@@ -170,7 +188,7 @@ class Vec2(tuple):
         :rtype: Vec2
         """
         mag = self.__abs__()
-        return Vec2(mag * _math.cos(heading), mag * _math.sin(heading))
+        return self.__class__(mag * _math.cos(heading), mag * _math.sin(heading))
 
     def limit(self, max):
         """Limit the magnitude of the vector to the value used for the max parameter.
@@ -200,8 +218,8 @@ class Vec2(tuple):
         :returns: A new interpolated vector.
         :rtype: Vec2
         """
-        return Vec2(self[0] + (alpha * (other[0] - self[0])),
-                    self[1] + (alpha * (other[1] - self[1])))
+        return self.__class__(self[0] + (alpha * (other[0] - self[0])),
+                              self[1] + (alpha * (other[1] - self[1])))
 
     def scale(self, value):
         """Multiply the vector by a scalar value.
@@ -213,7 +231,7 @@ class Vec2(tuple):
         :returns: A new vector scaled by the value.
         :rtype: Vec2
         """
-        return Vec2(self[0] * value, self[1] * value)
+        return self.__class__(self[0] * value, self[1] * value)
 
     def rotate(self, angle):
         """Create a new Vector rotated by the angle. The magnitude remains unchanged.
@@ -227,7 +245,7 @@ class Vec2(tuple):
         """
         mag = self.mag
         heading = self.heading
-        return Vec2(mag * _math.cos(heading + angle), mag * _math.sin(heading+angle))
+        return self.__class__(mag * _math.cos(heading + angle), mag * _math.sin(heading+angle))
 
     def distance(self, other):
         """Calculate the distance between this vector and another 2D vector.
@@ -249,7 +267,7 @@ class Vec2(tuple):
         """
         d = self.__abs__()
         if d:
-            return Vec2(self[0] / d, self[1] / d)
+            return self.__class__(self[0] / d, self[1] / d)
         return self
 
     def clamp(self, min_val, max_val):
@@ -264,7 +282,7 @@ class Vec2(tuple):
         :returns: A new vector with clamped X and Y components.
         :rtype: Vec2
         """
-        return Vec2(clamp(self[0], min_val, max_val), clamp(self[1], min_val, max_val))
+        return self.__class__(clamp(self[0], min_val, max_val), clamp(self[1], min_val, max_val))
 
     def dot(self, other):
         """Calculate the dot product of this vector and another 2D vector.
@@ -278,16 +296,19 @@ class Vec2(tuple):
         """
         return self[0] * other[0] + self[1] * other[1]
 
+    def as_type(self, return_type):
+        return self.__class__(return_type(self[0]), return_type(self[1]))
+
     def __getattr__(self, attrs):
         try:
             # Allow swizzed getting of attrs
-            vec_class = {2: Vec2, 3: Vec3, 4: Vec4}.get(len(attrs))
+            vec_class = {2: self.__class__, 3: Vec3, 4: Vec4}.get(len(attrs))
             return vec_class(*(self['xy'.index(c)] for c in attrs))
         except Exception:
             raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{attrs}'")
 
     def __repr__(self):
-        return f"Vec2({self[0]}, {self[1]})"
+        return f"{self.__class__.__name__}({self[0]}, {self[1]})"
 
 
 class Vec3(tuple):
